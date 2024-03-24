@@ -56,6 +56,11 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { na
 
         ComPtr<IDWriteFontFallback> const& GetSystemFontFallback();
 
+		/*
+		 * load font from file
+		 */
+    	// ComPtr<IDWriteFontFile>  GetFontCollectionFromFile(WCHAR* const fontFilePath);
+
     private:
         ComPtr<IDWriteFactory> const& GetIsolatedFactory();
 

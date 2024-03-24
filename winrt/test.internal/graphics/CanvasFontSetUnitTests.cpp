@@ -253,6 +253,20 @@ TEST_CLASS(CanvasFontSetTests)
 #endif
     }
 
+/*
+ * test add font file
+ */
+    TEST_METHOD_EX(CanvasFontSet_AddFontFile)
+	{
+
+		auto factory = Make<CanvasFontSetFactory>();
+        ComPtr<ICanvasFontSet> actualCanvasFontSet;
+        WCHAR const*  path = L"C:\\Users\\gjt\\Downloads\\adine-kirnberg\\sample.ttf";
+
+        Assert::AreEqual(S_OK, factory->AddFontFileToSet(path, &actualCanvasFontSet));
+        // factory->AddFontFileToSet(path, &actualCanvasFontSet);
+	}
+
     TEST_METHOD_EX(CanvasFontSet_Closed)
     {
         ComPtr<ICanvasFontSet> fontSet;

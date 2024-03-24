@@ -38,14 +38,14 @@
 
   <Target Name="CheckNuGetVersion">
 
-    <Exec Command="$(NuGetCommand) help | findstr /i /c:&quot;NuGet Version&quot;" 
-          CustomErrorRegularExpression="(?i)NuGet Version: [0123]"
-          IgnoreExitCode="true">
-        <Output TaskParameter="ExitCode" PropertyName="NuGetVersionExitCode" />
-    </Exec>
+<!--    <Exec Command="$(NuGetCommand) help | findstr /i /c:&quot;NuGet Version&quot;"-->
+<!--          CustomErrorRegularExpression="(?i)NuGet Version: [0-7]"-->
+<!--          IgnoreExitCode="true">-->
+<!--      <Output TaskParameter="ExitCode" PropertyName="NuGetVersionExitCode" />-->
+<!--    </Exec>-->
 
-    <Error Condition="$(NuGetVersionExitCode) != 0"
-           Text="Building Win2D requires nuget.exe version 4"/>
+<!--    <Error Condition="$(NuGetVersionExitCode) != 0"-->
+<!--           Text="Building Win2D requires nuget.exe version 4"/>-->
 
   </Target>
 

@@ -13,280 +13,290 @@ using namespace ABI::Microsoft::Graphics::Canvas::Text;
 
 ComPtr<IDWriteFactory> DefaultCustomFontManagerAdapter::CreateDWriteFactory(DWRITE_FACTORY_TYPE type)
 {
-    ComPtr<IDWriteFactory> factory;
-    ThrowIfFailed(DWriteCreateFactory(type, __uuidof(factory), &factory));
-    return factory;
+	ComPtr<IDWriteFactory> factory;
+	ThrowIfFailed(DWriteCreateFactory(type, __uuidof(factory), &factory));
+	return factory;
 }
 
 
 IStorageFileStatics* DefaultCustomFontManagerAdapter::GetStorageFileStatics()
 {
-    if (!m_storageFileStatics)
-    {
-        ThrowIfFailed(GetActivationFactory(
-            HStringReference(RuntimeClass_Windows_Storage_StorageFile).Get(),
-            &m_storageFileStatics));
-    }
+	if (!m_storageFileStatics)
+	{
+		ThrowIfFailed(GetActivationFactory(
+			HStringReference(RuntimeClass_Windows_Storage_StorageFile).Get(),
+			&m_storageFileStatics));
+	}
 
-    return m_storageFileStatics.Get();
+	return m_storageFileStatics.Get();
 }
 
 
-class CustomFontFileEnumerator 
-    : public RuntimeClass<RuntimeClassFlags<ClassicCom>, IDWriteFontFileEnumerator>
-    , private LifespanTracker<CustomFontFileEnumerator>
+class CustomFontFileEnumerator
+	: public RuntimeClass<RuntimeClassFlags<ClassicCom>, IDWriteFontFileEnumerator>
+	  , private LifespanTracker<CustomFontFileEnumerator>
 {
-    ComPtr<IDWriteFactory> m_factory;
-    std::wstring m_filename;
-    ComPtr<IDWriteFontFile> m_theFile;
+	ComPtr<IDWriteFactory> m_factory;
+	std::wstring m_filename;
+	ComPtr<IDWriteFontFile> m_theFile;
 
 public:
-    CustomFontFileEnumerator(IDWriteFactory* factory, void const* collectionKey, uint32_t collectionKeySize)
-        : m_factory(factory)
-        , m_filename(static_cast<wchar_t const*>(collectionKey), collectionKeySize / 2)
-    {
-    }
+	CustomFontFileEnumerator(IDWriteFactory* factory, void const* collectionKey, uint32_t collectionKeySize)
+		: m_factory(factory)
+		  , m_filename(static_cast<wchar_t const*>(collectionKey), collectionKeySize / 2)
+	{
+	}
 
-    IFACEMETHODIMP MoveNext(BOOL* hasCurrentFile) override
-    {
-        if (m_theFile)
-        {
-            *hasCurrentFile = FALSE;
-        }
-        else if (SUCCEEDED(m_factory->CreateFontFileReference(m_filename.c_str(), nullptr, &m_theFile)))
-        {
-            *hasCurrentFile = TRUE;
-        }
-        else
-        {
-            *hasCurrentFile = FALSE;
-        }
+	IFACEMETHODIMP MoveNext(BOOL* hasCurrentFile) override
+	{
+		if (m_theFile)
+		{
+			*hasCurrentFile = FALSE;
+		}
+		else if (SUCCEEDED(m_factory->CreateFontFileReference(m_filename.c_str(), nullptr, &m_theFile)))
+		{
+			*hasCurrentFile = TRUE;
+		}
+		else
+		{
+			*hasCurrentFile = FALSE;
+		}
 
-        return S_OK;
-    }
+		return S_OK;
+	}
 
-    IFACEMETHODIMP GetCurrentFontFile(IDWriteFontFile** fontFile) override
-    {
-        return m_theFile.CopyTo(fontFile);
-    }
+	IFACEMETHODIMP GetCurrentFontFile(IDWriteFontFile** fontFile) override
+	{
+		return m_theFile.CopyTo(fontFile);
+	}
 };
 
 
 class CustomFontLoader
-    : public RuntimeClass<RuntimeClassFlags<ClassicCom>, IDWriteFontCollectionLoader>
-    , private LifespanTracker<CustomFontLoader>
+	: public RuntimeClass<RuntimeClassFlags<ClassicCom>, IDWriteFontCollectionLoader>
+	  , private LifespanTracker<CustomFontLoader>
 {
 public:
-    IFACEMETHODIMP CreateEnumeratorFromKey(
-        IDWriteFactory* factory,
-        void const* collectionKey,
-        uint32_t collectionKeySize,
-        IDWriteFontFileEnumerator** fontFileEnumerator) override
-    {
-        return ExceptionBoundary(
-            [=]
-            {
-                auto enumerator = Make<CustomFontFileEnumerator>(factory, collectionKey, collectionKeySize);
-                CheckMakeResult(enumerator);
-                ThrowIfFailed(enumerator.CopyTo(fontFileEnumerator));
-            });
-    }
+	IFACEMETHODIMP CreateEnumeratorFromKey(
+		IDWriteFactory* factory,
+		void const* collectionKey,
+		uint32_t collectionKeySize,
+		IDWriteFontFileEnumerator** fontFileEnumerator) override
+	{
+		return ExceptionBoundary(
+			[=]
+			{
+				auto enumerator = Make<CustomFontFileEnumerator>(factory, collectionKey, collectionKeySize);
+				CheckMakeResult(enumerator);
+				ThrowIfFailed(enumerator.CopyTo(fontFileEnumerator));
+			});
+	}
 };
 
 
 CustomFontManager::CustomFontManager()
-    : m_adapter(CustomFontManagerAdapter::GetInstance())
+	: m_adapter(CustomFontManagerAdapter::GetInstance())
 {
-    ThrowIfFailed(GetActivationFactory(
-        HStringReference(RuntimeClass_Windows_Foundation_Uri).Get(),
-        &m_uriFactory));
+	ThrowIfFailed(GetActivationFactory(
+		HStringReference(RuntimeClass_Windows_Foundation_Uri).Get(),
+		&m_uriFactory));
 }
 
 WinString CustomFontManager::GetAbsolutePathFromUri(WinString const& uriString)
 {
-    ComPtr<IUriRuntimeClass> uri;
+	ComPtr<IUriRuntimeClass> uri;
 
-    // This will not overwrite an existing URI scheme in uriString, e.g. file://
-    ThrowIfFailed(m_uriFactory->CreateWithRelativeUri(WinString(L"ms-appx://"), uriString, &uri));
+	// This will not overwrite an existing URI scheme in uriString, e.g. file://
+	ThrowIfFailed(m_uriFactory->CreateWithRelativeUri(WinString(L"ms-appx://"), uriString, &uri));
 
-    return GetAbsolutePathFromUri(uri.Get());
+	return GetAbsolutePathFromUri(uri.Get());
 }
 
 WinString CustomFontManager::GetAbsolutePathFromUri(IUriRuntimeClass* uri)
 {
-    auto storageFileStatics = m_adapter->GetStorageFileStatics();
-    ComPtr<IAsyncOperation<StorageFile*>> operation;
+	auto storageFileStatics = m_adapter->GetStorageFileStatics();
+	ComPtr<IAsyncOperation<StorageFile*>> operation;
 
-    // Check to see if the URI has a file:// host.
-    WinString uriHost;
-    HRESULT hr = uri->get_SchemeName(uriHost.GetAddressOf());
-    if (FAILED(hr))
-    {
-        ThrowHR(hr, Strings::InvalidFontFamilyUri);
-    }
-    if (CompareStringOrdinal(L"file", -1, (LPCWCH)uriHost, -1, TRUE) == CSTR_EQUAL)
-    {
-        // Get a StorageFile by extracting the file path.
-        WinString uriPath;
-        hr = uri->get_AbsoluteUri(uriPath.GetAddressOf());
-        if (FAILED(hr))
-        {
-            ThrowHR(hr, Strings::InvalidFontFamilyFileUri);
-        }
-        hr = storageFileStatics->GetFileFromPathAsync(uriPath, &operation);
-        if (FAILED(hr))
-        {
-            ThrowHR(hr, Strings::InvalidFontFamilyFileUri);
-        }
-    }
-    else
-    {
-        // Get a StorageFile directly from the URI.
-        // This is not supported on unpackaged apps.
-        hr = storageFileStatics->GetFileFromApplicationUriAsync(uri, &operation);
-        if (FAILED(hr))
-        {
-            ThrowHR(hr, HStringReference(Strings::InvalidFontFamilyUri).Get());
-        }
-    }
+	// Check to see if the URI has a file:// host.
+	WinString uriHost;
+	HRESULT hr = uri->get_SchemeName(uriHost.GetAddressOf());
+	if (FAILED(hr))
+	{
+		ThrowHR(hr, Strings::InvalidFontFamilyUri);
+	}
+	if (CompareStringOrdinal(L"file", -1, (LPCWCH)uriHost, -1, TRUE) == CSTR_EQUAL)
+	{
+		// Get a StorageFile by extracting the file path.
+		WinString uriPath;
+		hr = uri->get_AbsoluteUri(uriPath.GetAddressOf());
+		if (FAILED(hr))
+		{
+			ThrowHR(hr, Strings::InvalidFontFamilyFileUri);
+		}
+		hr = storageFileStatics->GetFileFromPathAsync(uriPath, &operation);
+		if (FAILED(hr))
+		{
+			ThrowHR(hr, Strings::InvalidFontFamilyFileUri);
+		}
+	}
+	else
+	{
+		// Get a StorageFile directly from the URI.
+		// This is not supported on unpackaged apps.
+		hr = storageFileStatics->GetFileFromApplicationUriAsync(uri, &operation);
+		if (FAILED(hr))
+		{
+			ThrowHR(hr, HStringReference(Strings::InvalidFontFamilyUri).Get());
+		}
+	}
 
-    Event operationCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS));
-    auto handler = Callback<AddFtmBase<IAsyncOperationCompletedHandler<StorageFile*>>::Type>(
-        [&](IAsyncOperation<StorageFile*>*, AsyncStatus)
-        {
-            SetEvent(operationCompleted.Get());
-            return S_OK;
-        });
-    CheckMakeResult(handler);
+	Event operationCompleted(CreateEventEx(nullptr, nullptr, CREATE_EVENT_MANUAL_RESET, EVENT_ALL_ACCESS));
+	auto handler = Callback<AddFtmBase<IAsyncOperationCompletedHandler<StorageFile*>>::Type>(
+		[&](IAsyncOperation<StorageFile*>*, AsyncStatus)
+		{
+			SetEvent(operationCompleted.Get());
+			return S_OK;
+		});
+	CheckMakeResult(handler);
 
-    ThrowIfFailed(operation->put_Completed(handler.Get()));
+	ThrowIfFailed(operation->put_Completed(handler.Get()));
 
-    auto res = WaitForSingleObjectEx(operationCompleted.Get(), INFINITE, false);
-    if (res != WAIT_OBJECT_0)
-        ThrowHR(E_UNEXPECTED);
+	auto res = WaitForSingleObjectEx(operationCompleted.Get(), INFINITE, false);
+	if (res != WAIT_OBJECT_0)
+		ThrowHR(E_UNEXPECTED);
 
-    ComPtr<IStorageFile> storageFile;
-    ThrowIfFailed(operation->GetResults(&storageFile));
+	ComPtr<IStorageFile> storageFile;
+	ThrowIfFailed(operation->GetResults(&storageFile));
 
-    WinString path;
-    ThrowIfFailed(As<IStorageItem>(storageFile)->get_Path(path.GetAddressOf()));
+	WinString path;
+	ThrowIfFailed(As<IStorageItem>(storageFile)->get_Path(path.GetAddressOf()));
 
-    return path;
+	return path;
 }
 
 ComPtr<IDWriteFontCollection> CustomFontManager::GetFontCollectionFromUri(WinString const& uri)
 {
-    //
-    // No URI means no custom font collection - ie use the system font
-    // collection.
-    //
-    if (uri == WinString())
-    {
-        return nullptr;
-    }
+	//
+	// No URI means no custom font collection - ie use the system font
+	// collection.
+	//
+	if (uri == WinString())
+	{
+		return nullptr;
+	}
 
-    auto path = GetAbsolutePathFromUri(uri);
+	auto path = GetAbsolutePathFromUri(uri);
 
-    return GetFontCollectionFromPath(path);
+	return GetFontCollectionFromPath(path);
 }
 
 ComPtr<IDWriteFontCollection> CustomFontManager::GetFontCollectionFromUri(IUriRuntimeClass* uri)
 {
-    auto path = GetAbsolutePathFromUri(uri);
+	auto path = GetAbsolutePathFromUri(uri);
 
-    return GetFontCollectionFromPath(path);
+	return GetFontCollectionFromPath(path);
 }
 
 ComPtr<IDWriteFontCollection> CustomFontManager::GetFontCollectionFromPath(WinString& path)
 {
-    auto pathBegin = begin(path);
-    auto pathEnd = end(path);
+	auto pathBegin = begin(path);
+	auto pathEnd = end(path);
 
-    assert(pathBegin && pathEnd);
+	assert(pathBegin && pathEnd);
 
-    void const* key = pathBegin;
-    uint32_t keySize = static_cast<uint32_t>(std::distance(pathBegin, pathEnd) * sizeof(wchar_t));
+	void const* key = pathBegin;
+	uint32_t keySize = static_cast<uint32_t>(std::distance(pathBegin, pathEnd) * sizeof(wchar_t));
 
-    ComPtr<IDWriteFontCollection> collection;
+	ComPtr<IDWriteFontCollection> collection;
 
-    auto factory = GetIsolatedFactory();
-    ThrowIfFailed(factory->CreateCustomFontCollection(m_customLoader.Get(), key, keySize, &collection));
+	auto factory = GetIsolatedFactory();
+	ThrowIfFailed(factory->CreateCustomFontCollection(m_customLoader.Get(), key, keySize, &collection));
 
-    return collection;
+	return collection;
 }
 
 ComPtr<IDWriteFactory> const& CustomFontManager::GetIsolatedFactory()
 {
-    RecursiveLock lock(m_mutex);
-    
-    if (!m_isolatedFactory)
-    {
-        m_isolatedFactory = m_adapter->CreateDWriteFactory(DWRITE_FACTORY_TYPE_ISOLATED);
-        m_customLoader = Make<CustomFontLoader>();
-        ThrowIfFailed(m_isolatedFactory->RegisterFontCollectionLoader(m_customLoader.Get()));
-    }
+	RecursiveLock lock(m_mutex);
 
-    return m_isolatedFactory;
+	if (!m_isolatedFactory)
+	{
+		m_isolatedFactory = m_adapter->CreateDWriteFactory(DWRITE_FACTORY_TYPE_ISOLATED);
+		m_customLoader = Make<CustomFontLoader>();
+		ThrowIfFailed(m_isolatedFactory->RegisterFontCollectionLoader(m_customLoader.Get()));
+	}
+
+	return m_isolatedFactory;
 }
 
 ComPtr<IDWriteFactory> const& CustomFontManager::GetSharedFactory()
 {
-    RecursiveLock lock(m_mutex);
-    
-    if (!m_sharedFactory)
-    {
-        m_sharedFactory = m_adapter->CreateDWriteFactory(DWRITE_FACTORY_TYPE_SHARED);
-    }
+	RecursiveLock lock(m_mutex);
 
-    return m_sharedFactory;
+	if (!m_sharedFactory)
+	{
+		m_sharedFactory = m_adapter->CreateDWriteFactory(DWRITE_FACTORY_TYPE_SHARED);
+	}
+
+	return m_sharedFactory;
 }
 
 ComPtr<IDWriteTextAnalyzer2> const& CustomFontManager::GetTextAnalyzer()
 {
-    RecursiveLock lock(m_mutex);
+	RecursiveLock lock(m_mutex);
 
-    auto& sharedFactory = GetSharedFactory();
+	auto& sharedFactory = GetSharedFactory();
 
-    if (!m_textAnalyzer)
-    {
-        ComPtr<IDWriteTextAnalyzer> textAnalyzerBase;
+	if (!m_textAnalyzer)
+	{
+		ComPtr<IDWriteTextAnalyzer> textAnalyzerBase;
 
-        ThrowIfFailed(sharedFactory->CreateTextAnalyzer(&textAnalyzerBase));
-        m_textAnalyzer = As<IDWriteTextAnalyzer2>(textAnalyzerBase);
-    }
+		ThrowIfFailed(sharedFactory->CreateTextAnalyzer(&textAnalyzerBase));
+		m_textAnalyzer = As<IDWriteTextAnalyzer2>(textAnalyzerBase);
+	}
 
-    return m_textAnalyzer;
+	return m_textAnalyzer;
 }
 
 ComPtr<IDWriteFontFallback> const& CustomFontManager::GetSystemFontFallback()
 {
-    RecursiveLock lock(m_mutex);
+	RecursiveLock lock(m_mutex);
 
-    auto& sharedFactory = GetSharedFactory();
+	auto& sharedFactory = GetSharedFactory();
 
-    if (!m_systemFontFallback)
-    {
-        ThrowIfFailed(As<IDWriteFactory2>(sharedFactory)->GetSystemFontFallback(&m_systemFontFallback));
-    }
+	if (!m_systemFontFallback)
+	{
+		ThrowIfFailed(As<IDWriteFactory2>(sharedFactory)->GetSystemFontFallback(&m_systemFontFallback));
+	}
 
-    return m_systemFontFallback;
+	return m_systemFontFallback;
 }
+
+// ComPtr<IDWriteFontFile> CustomFontManager::GetFontCollectionFromFile(WCHAR* const fontFilePath)
+// {
+// 	auto& factory = GetSharedFactory();
+//
+// 	ComPtr<IDWriteFontFile> fontFile;
+// 	ThrowIfFailed(factory->CreateFontFileReference(fontFilePath, nullptr, &fontFile));
+//
+// 	return fontFile;
+// }
 
 void CustomFontManager::ValidateUri(WinString const& uriString)
 {
-    if (uriString == WinString())
-        return;
+	if (uriString == WinString())
+		return;
 
-    ComPtr<IUriRuntimeClass> uri;
-    ThrowIfFailed(m_uriFactory->CreateWithRelativeUri(WinString(L"ms-appx://"), uriString, &uri));
+	ComPtr<IUriRuntimeClass> uri;
+	ThrowIfFailed(m_uriFactory->CreateWithRelativeUri(WinString(L"ms-appx://"), uriString, &uri));
 
-    WinString schemeName;
-    ThrowIfFailed(uri->get_SchemeName(schemeName.GetAddressOf()));
+	WinString schemeName;
+	ThrowIfFailed(uri->get_SchemeName(schemeName.GetAddressOf()));
 
-    if (!schemeName.Equals(HStringReference(L"ms-appx").Get()) &&
-        !schemeName.Equals(HStringReference(L"ms-appdata").Get()) &&
-        !schemeName.Equals(HStringReference(L"file").Get()))
-    {
-        ThrowHR(E_INVALIDARG, Strings::InvalidFontFamilyUriScheme);
-    }
+	if (!schemeName.Equals(HStringReference(L"ms-appx").Get()) &&
+		!schemeName.Equals(HStringReference(L"ms-appdata").Get()) &&
+		!schemeName.Equals(HStringReference(L"file").Get()))
+	{
+		ThrowHR(E_INVALIDARG, Strings::InvalidFontFamilyUriScheme);
+	}
 }

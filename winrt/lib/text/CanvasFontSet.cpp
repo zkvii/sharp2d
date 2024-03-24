@@ -98,6 +98,35 @@ IFACEMETHODIMP CanvasFontSetFactory::GetSystemFontSet(
         });
 }
 
+IFACEMETHODIMP CanvasFontSetFactory::AddFontFileToSet(HSTRING fontFilePath, ICanvasFontSet** fontSet)
+{
+    	return ExceptionBoundary(
+		[&]
+		{
+
+            auto &factory= CustomFontManager::GetInstance()->GetSharedFactory();
+
+            ComPtr<IDWriteFontFile> fontFile;
+            ThrowIfFailed(factory->CreateFontFileReference(WindowsGetStringRawBuffer(fontFilePath,nullptr), nullptr, &fontFile));
+            ComPtr<IDWriteFontSetBuilder1> fontSetBuilder;
+
+            ThrowIfFailed(As<IDWriteFactory5>(factory)->CreateFontSetBuilder(&fontSetBuilder));
+
+			ThrowIfFailed(fontSetBuilder->AddFontFile(fontFile.Get()));
+
+			ComPtr<IDWriteFontSet> newFontSet;
+			ThrowIfFailed(fontSetBuilder->CreateFontSet(&newFontSet));
+
+			auto canvasFontSet = ResourceManager::GetOrCreate<ICanvasFontSet>(newFontSet.Get());
+
+			canvasFontSet.CopyTo(fontSet);
+            
+		});
+}
+
+
+
+
 CanvasFontSet::CanvasFontSet(DWriteFontSetType* dwriteFontSet)
     : ResourceWrapper(dwriteFontSet)
     , m_customFontManager(CustomFontManager::GetInstance())
