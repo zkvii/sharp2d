@@ -118,7 +118,11 @@ namespace Microsoft.Graphics.Canvas.Text
     interface ICanvasFontSetStatics : IInspectable
     {
         HRESULT GetSystemFontSet([out, retval] CanvasFontSet** fontSet);
-        HRESULT AddFontFileToSet([in] HSTRING fontFilePath, [out, retval] CanvasFontSet** fontSet);
+        HRESULT AddFontFileToNewSet([in] HSTRING fontFilePath, [out, retval] CanvasFontSet** fontSet);
+        HRESULT AddFontFileToSet([in] HSTRING fontFilePath, [in]  CanvasFontSet* oldfontSet,[out,retval] CanvasFontSet** newfontSet);
+        HRESULT AddFontStreamToSet([in]IStream* fontStream, [in]  CanvasFontSet* oldfontSet, [out, retval] CanvasFontSet** newfontSet);
+
+
     }
 
     [STANDARD_ATTRIBUTES, activatable(ICanvasFontSetFactory, VERSION), static(ICanvasFontSetStatics, VERSION)]

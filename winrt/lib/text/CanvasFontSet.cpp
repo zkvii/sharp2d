@@ -5,6 +5,9 @@
 #include "pch.h"
 
 #include "CanvasFontSet.h"
+
+#include <iostream>
+
 #include "CanvasFontFace.h"
 #include "TextUtilities.h"
 
@@ -15,102 +18,104 @@ using namespace ABI::Microsoft::Graphics::Canvas::Text;
 // CanvasFontSetFactory implementation
 //
 IFACEMETHODIMP CanvasFontSetFactory::Create(
-    IUriRuntimeClass* uri,
-    ICanvasFontSet** fontSet)
+	IUriRuntimeClass* uri,
+	ICanvasFontSet** fontSet)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckInPointer(uri);
-            CheckAndClearOutPointer(fontSet);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckInPointer(uri);
+			CheckAndClearOutPointer(fontSet);
 
-            auto customFontManager = CustomFontManager::GetInstance();
+			auto customFontManager = CustomFontManager::GetInstance();
 
-            auto fontCollection = customFontManager->GetFontCollectionFromUri(uri);
+			auto fontCollection = customFontManager->GetFontCollectionFromUri(uri);
 
-            if (!fontCollection)
-                ThrowHR(E_INVALIDARG);
+			if (!fontCollection)
+				ThrowHR(E_INVALIDARG);
 
-            ComPtr<DWriteFontSetType> fontResource;
+			ComPtr<DWriteFontSetType> fontResource;
 #if WINVER > _WIN32_WINNT_WINBLUE
-            ThrowIfFailed(As<IDWriteFontCollection1>(fontCollection)->GetFontSet(&fontResource));
+			ThrowIfFailed(As<IDWriteFontCollection1>(fontCollection)->GetFontSet(&fontResource));
 #else
             fontResource = fontCollection;
 #endif
-            auto newFontSet = Make<CanvasFontSet>(fontResource.Get());
-            CheckMakeResult(newFontSet);
+			auto newFontSet = Make<CanvasFontSet>(fontResource.Get());
+			CheckMakeResult(newFontSet);
 
-            ThrowIfFailed(newFontSet.CopyTo(fontSet));
-        });
+			ThrowIfFailed(newFontSet.CopyTo(fontSet));
+		});
 }
 
 
 #if WINVER > _WIN32_WINNT_WINBLUE
 ComPtr<IDWriteFontSet> GetLocalFonts(ComPtr<IDWriteFontSet> const& fonts)
 {
-    auto factory = As<IDWriteFactory3>(CustomFontManager::GetInstance()->GetSharedFactory());
+	auto factory = As<IDWriteFactory3>(CustomFontManager::GetInstance()->GetSharedFactory());
 
-    ComPtr<IDWriteFontSetBuilder> fontSetBuilder;
-    ThrowIfFailed(factory->CreateFontSetBuilder(&fontSetBuilder));
+	ComPtr<IDWriteFontSetBuilder> fontSetBuilder;
+	ThrowIfFailed(factory->CreateFontSetBuilder(&fontSetBuilder));
 
-    const uint32_t fontCount = fonts->GetFontCount();
-    for (uint32_t i = 0; i < fontCount; ++i)
-    {
-        ComPtr<IDWriteFontFaceReference> fontFaceReference;
-        ThrowIfFailed(fonts->GetFontFaceReference(i, &fontFaceReference));
+	const uint32_t fontCount = fonts->GetFontCount();
+	for (uint32_t i = 0; i < fontCount; ++i)
+	{
+		ComPtr<IDWriteFontFaceReference> fontFaceReference;
+		ThrowIfFailed(fonts->GetFontFaceReference(i, &fontFaceReference));
 
-        if (fontFaceReference->GetLocality() == DWRITE_LOCALITY_LOCAL)
-        {
-            ThrowIfFailed(fontSetBuilder->AddFontFaceReference(fontFaceReference.Get()));
-        }
-    }
+		if (fontFaceReference->GetLocality() == DWRITE_LOCALITY_LOCAL)
+		{
+			ThrowIfFailed(fontSetBuilder->AddFontFaceReference(fontFaceReference.Get()));
+		}
+	}
 
-    ComPtr<IDWriteFontSet> localFonts;
-    ThrowIfFailed(fontSetBuilder->CreateFontSet(&localFonts));
+	ComPtr<IDWriteFontSet> localFonts;
+	ThrowIfFailed(fontSetBuilder->CreateFontSet(&localFonts));
 
-    return localFonts;
+	return localFonts;
 }
 #endif
 
 IFACEMETHODIMP CanvasFontSetFactory::GetSystemFontSet(
-    ICanvasFontSet** fontSet)
+	ICanvasFontSet** fontSet)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckAndClearOutPointer(fontSet);
-            
-            auto factory = CustomFontManager::GetInstance()->GetSharedFactory();
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckAndClearOutPointer(fontSet);
 
-            ComPtr<DWriteFontSetType> systemFonts;
+			auto factory = CustomFontManager::GetInstance()->GetSharedFactory();
+
+			ComPtr<DWriteFontSetType> systemFonts;
 
 #if WINVER > _WIN32_WINNT_WINBLUE
-            ComPtr<DWriteFontSetType> systemFontsIncludingRemoteFonts;
+			ComPtr<DWriteFontSetType> systemFontsIncludingRemoteFonts;
 
-            ThrowIfFailed(As<IDWriteFactory3>(factory)->GetSystemFontSet(&systemFontsIncludingRemoteFonts));
-            systemFonts = GetLocalFonts(systemFontsIncludingRemoteFonts);
+			ThrowIfFailed(As<IDWriteFactory3>(factory)->GetSystemFontSet(&systemFontsIncludingRemoteFonts));
+			systemFonts = GetLocalFonts(systemFontsIncludingRemoteFonts);
 #else
             ThrowIfFailed(factory->GetSystemFontCollection(&systemFonts));
 #endif
-            auto canvasFontSet = ResourceManager::GetOrCreate<ICanvasFontSet>(systemFonts.Get());
+			auto canvasFontSet = ResourceManager::GetOrCreate<ICanvasFontSet>(systemFonts.Get());
 
-            canvasFontSet.CopyTo(fontSet);
-        });
+			canvasFontSet.CopyTo(fontSet);
+		});
 }
 
-IFACEMETHODIMP CanvasFontSetFactory::AddFontFileToSet(HSTRING fontFilePath, ICanvasFontSet** fontSet)
+IFACEMETHODIMP CanvasFontSetFactory::AddFontFileToNewSet(HSTRING fontFilePath, ICanvasFontSet** fontSet)
 {
-    	return ExceptionBoundary(
+	return ExceptionBoundary(
 		[&]
 		{
+			// auto &factory= CustomFontManager::GetInstance()->GetSharedFactory();
+			auto factory = CustomFontManager::GetInstance()->GetSharedFactory();
+			ComPtr<IDWriteFontFile> fontFile;
 
-            auto &factory= CustomFontManager::GetInstance()->GetSharedFactory();
+			auto filePath = WindowsGetStringRawBuffer(fontFilePath, nullptr);
 
-            ComPtr<IDWriteFontFile> fontFile;
-            ThrowIfFailed(factory->CreateFontFileReference(WindowsGetStringRawBuffer(fontFilePath,nullptr), nullptr, &fontFile));
-            ComPtr<IDWriteFontSetBuilder1> fontSetBuilder;
+			ThrowIfFailed(factory->CreateFontFileReference(filePath, nullptr, &fontFile));
+			ComPtr<IDWriteFontSetBuilder1> fontSetBuilder;
 
-            ThrowIfFailed(As<IDWriteFactory5>(factory)->CreateFontSetBuilder(&fontSetBuilder));
+			ThrowIfFailed(As<IDWriteFactory5>(factory)->CreateFontSetBuilder(&fontSetBuilder));
 
 			ThrowIfFailed(fontSetBuilder->AddFontFile(fontFile.Get()));
 
@@ -119,17 +124,124 @@ IFACEMETHODIMP CanvasFontSetFactory::AddFontFileToSet(HSTRING fontFilePath, ICan
 
 			auto canvasFontSet = ResourceManager::GetOrCreate<ICanvasFontSet>(newFontSet.Get());
 
+
 			canvasFontSet.CopyTo(fontSet);
-            
+			//
+			// uint32_t fontCount = newFontSet->GetFontCount();
+			// ThrowIfFailed(fontCount==1);
+			//
+			// ComPtr<IDWriteFontCollection1> fontCollection;
+			//
+			// ThrowIfFailed(
+			// 	As<IDWriteFactory5>(factory)->CreateFontCollectionFromFontSet(newFontSet.Get(), &fontCollection));
+
+			/*
+			 * count fonts in the collection
+			 */
+		});
+}
+
+IFACEMETHODIMP CanvasFontSetFactory::AddFontFileToSet(HSTRING fontFilePath, ICanvasFontSet* oldfontSet,
+                                                      ICanvasFontSet** newfontSet)
+{
+	return ExceptionBoundary(
+		[&]
+		{
+			// auto &factory= CustomFontManager::GetInstance()->GetSharedFactory();
+			auto factory = CustomFontManager::GetInstance()->GetSharedFactory();
+			ComPtr<IDWriteFontFile> fontFile;
+
+			auto filePath = WindowsGetStringRawBuffer(fontFilePath, nullptr);
+
+			ThrowIfFailed(factory->CreateFontFileReference(filePath, nullptr, &fontFile));
+			ComPtr<IDWriteFontSetBuilder1> fontSetBuilder;
+
+			ThrowIfFailed(As<IDWriteFactory5>(factory)->CreateFontSetBuilder(&fontSetBuilder));
+
+			ThrowIfFailed(fontSetBuilder->AddFontFile(fontFile.Get()));
+			auto pfontSet = GetWrappedResource<IDWriteFontSet>(oldfontSet);
+			pfontSet->GetFontCount();
+
+			UINT32 fontCount = pfontSet->GetFontCount();
+
+			for (UINT32 i = 0; i < fontCount; ++i)
+			{
+				ComPtr<IDWriteFontFaceReference> fontFaceReference;
+				auto hr = pfontSet->GetFontFaceReference(i, &fontFaceReference);
+
+				hr = fontSetBuilder->AddFontFaceReference(fontFaceReference.Get());
+				if (hr != S_OK)
+				{
+					return;
+				}
+			}
+
+			ComPtr<IDWriteFontSet> newFontSet;
+			ThrowIfFailed(fontSetBuilder->CreateFontSet(&newFontSet));
+
+
+			auto count = newFontSet->GetFontCount();
+			std::cout << "count: " << count << std::endl;
+			auto canvasFontSet = ResourceManager::GetOrCreate<ICanvasFontSet>(newFontSet.Get());
+			canvasFontSet.CopyTo(newfontSet);
 		});
 }
 
 
+IFACEMETHODIMP CanvasFontSetFactory::AddFontStreamToSet(IStream* fontStream, ICanvasFontSet* oldfontSet,
+                                                        ICanvasFontSet** newfontSet)
+{
+	return ExceptionBoundary(
+		[&]
+		{
+			// auto &factory= CustomFontManager::GetInstance()->GetSharedFactory();
+			auto factory = CustomFontManager::GetInstance()->GetSharedFactory();
+			ComPtr<IDWriteFontFile> fontFile;
+			ComPtr<IDWriteInMemoryFontFileLoader> fontFileStream;
+			ThrowIfFailed(As<IDWriteFactory5>(factory)->CreateInMemoryFontFileLoader(&fontFileStream));
+			ThrowIfFailed(As<IDWriteFactory5>(factory)->RegisterFontFileLoader(fontFileStream.Get()));
+
+
+			fontFileStream->CreateInMemoryFontFileReference();
+
+
+			ComPtr<IDWriteFontSetBuilder1> fontSetBuilder;
+
+			ThrowIfFailed(As<IDWriteFactory5>(factory)->CreateFontSetBuilder(&fontSetBuilder));
+
+			ThrowIfFailed(fontSetBuilder->AddFontFile(fontFile.Get()));
+			auto pfontSet = GetWrappedResource<IDWriteFontSet>(oldfontSet);
+			pfontSet->GetFontCount();
+
+			UINT32 fontCount = pfontSet->GetFontCount();
+
+			for (UINT32 i = 0; i < fontCount; ++i)
+			{
+				ComPtr<IDWriteFontFaceReference> fontFaceReference;
+				auto hr = pfontSet->GetFontFaceReference(i, &fontFaceReference);
+
+				hr = fontSetBuilder->AddFontFaceReference(fontFaceReference.Get());
+				if (hr != S_OK)
+				{
+					return;
+				}
+			}
+
+			ComPtr<IDWriteFontSet> newFontSet;
+			ThrowIfFailed(fontSetBuilder->CreateFontSet(&newFontSet));
+
+
+			auto count = newFontSet->GetFontCount();
+			std::cout << "count: " << count << std::endl;
+			auto canvasFontSet = ResourceManager::GetOrCreate<ICanvasFontSet>(newFontSet.Get());
+			canvasFontSet.CopyTo(newfontSet);
+		});
+}
 
 
 CanvasFontSet::CanvasFontSet(DWriteFontSetType* dwriteFontSet)
-    : ResourceWrapper(dwriteFontSet)
-    , m_customFontManager(CustomFontManager::GetInstance())
+	: ResourceWrapper(dwriteFontSet)
+	  , m_customFontManager(CustomFontManager::GetInstance())
 {
 }
 
@@ -165,238 +277,242 @@ void CanvasFontSet::EnsureFlatCollection(ComPtr<IDWriteFontCollection> const& re
 #if WINVER > _WIN32_WINNT_WINBLUE
 IFACEMETHODIMP CanvasFontSet::TryFindFontFace(ICanvasFontFace* fontFace, int* index, boolean* succeeded)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckInPointer(fontFace);
-            CheckInPointer(index);
-            CheckInPointer(succeeded);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckInPointer(fontFace);
+			CheckInPointer(index);
+			CheckInPointer(succeeded);
 
-            auto& resource = GetResource();
+			auto& resource = GetResource();
 
-            *index = 0;
-            *succeeded = false;
+			*index = 0;
+			*succeeded = false;
 
-            auto dwriteFontFaceReference = GetWrappedResource<IDWriteFontFaceReference>(fontFace);
-            ComPtr<IDWriteFontFace3> dwriteFontFace;
-            ThrowIfFailed(dwriteFontFaceReference->CreateFontFace(&dwriteFontFace));
+			auto dwriteFontFaceReference = GetWrappedResource<IDWriteFontFaceReference>(fontFace);
+			ComPtr<IDWriteFontFace3> dwriteFontFace;
+			ThrowIfFailed(dwriteFontFaceReference->CreateFontFace(&dwriteFontFace));
 
-            BOOL exists;
-            uint32_t returnedIndex;
-            ThrowIfFailed(resource->FindFontFace(dwriteFontFace.Get(), &returnedIndex, &exists));
+			BOOL exists;
+			uint32_t returnedIndex;
+			ThrowIfFailed(resource->FindFontFace(dwriteFontFace.Get(), &returnedIndex, &exists));
 
-            if (exists)
-            {
-                *index = static_cast<int>(returnedIndex);
-                *succeeded = true;
-            }
-        });
+			if (exists)
+			{
+				*index = static_cast<int>(returnedIndex);
+				*succeeded = true;
+			}
+		});
 }
 #endif
 
 IFACEMETHODIMP CanvasFontSet::get_Fonts(IVectorView<CanvasFontFace*>** value)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckAndClearOutPointer(value);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckAndClearOutPointer(value);
 
-            auto& resource = GetResource();
+			auto& resource = GetResource();
 
 #if WINVER > _WIN32_WINNT_WINBLUE
-            const uint32_t fontCount = resource->GetFontCount();
+			const uint32_t fontCount = resource->GetFontCount();
 #else
             EnsureFlatCollection(resource);
             const uint32_t fontCount = static_cast<uint32_t>(m_flatCollection.size());
 #endif
 
-            auto vector = Make<Vector<CanvasFontFace*>>();
+			auto vector = Make<Vector<CanvasFontFace*>>();
 
-            for (uint32_t i = 0; i < fontCount; ++i)
-            {
+			for (uint32_t i = 0; i < fontCount; ++i)
+			{
 #if WINVER > _WIN32_WINNT_WINBLUE
-                ComPtr<IDWriteFontFaceReference> fontResource;
-                ThrowIfFailed(resource->GetFontFaceReference(i, &fontResource));
+				ComPtr<IDWriteFontFaceReference> fontResource;
+				ThrowIfFailed(resource->GetFontFaceReference(i, &fontResource));
 #else
                 ComPtr<IDWriteFont> fontResource = m_flatCollection[i];
 #endif
 
-                auto canvasFontFace = ResourceManager::GetOrCreate<ICanvasFontFace>(fontResource.Get());
+				auto canvasFontFace = ResourceManager::GetOrCreate<ICanvasFontFace>(fontResource.Get());
 
-                ThrowIfFailed(vector->Append(canvasFontFace.Get()));
-            }
+				ThrowIfFailed(vector->Append(canvasFontFace.Get()));
+			}
 
-            ThrowIfFailed(vector->GetView(value));
-        });
+			ThrowIfFailed(vector->GetView(value));
+		});
 }
 
 #if WINVER > _WIN32_WINNT_WINBLUE
 
 DWRITE_FONT_PROPERTY ToDWriteFontProperty(CanvasFontProperty const& value)
 {
-    DWRITE_FONT_PROPERTY result;
-    result.propertyId = ToDWriteFontPropertyId(value.Identifier);
-    result.localeName = WindowsGetStringRawBuffer(value.Locale, nullptr);
-    result.propertyValue = WindowsGetStringRawBuffer(value.Value, nullptr);
-    return result;
+	DWRITE_FONT_PROPERTY result;
+	result.propertyId = ToDWriteFontPropertyId(value.Identifier);
+	result.localeName = WindowsGetStringRawBuffer(value.Locale, nullptr);
+	result.propertyValue = WindowsGetStringRawBuffer(value.Value, nullptr);
+	return result;
 }
 
 IFACEMETHODIMP CanvasFontSet::GetMatchingFontsFromProperties(
-    UINT32 propertyCount,
-    CanvasFontProperty* propertyElements,
-    ICanvasFontSet** matchingFonts)
+	UINT32 propertyCount,
+	CanvasFontProperty* propertyElements,
+	ICanvasFontSet** matchingFonts)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckAndClearOutPointer(matchingFonts);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckAndClearOutPointer(matchingFonts);
 
-            auto& resource = GetResource();
-            
-            std::vector<DWRITE_FONT_PROPERTY> dwriteFontProperties;
-            dwriteFontProperties.reserve(propertyCount);
-            for (uint32_t i = 0; i < propertyCount; ++i)
-            {
-                dwriteFontProperties.push_back(ToDWriteFontProperty(propertyElements[i]));
-            }
+			auto& resource = GetResource();
 
-            ComPtr<IDWriteFontSet> dwriteFontSet;
-            ThrowIfFailed(resource->GetMatchingFonts(dwriteFontProperties.data(), propertyCount, &dwriteFontSet));
+			std::vector<DWRITE_FONT_PROPERTY> dwriteFontProperties;
+			dwriteFontProperties.reserve(propertyCount);
+			for (uint32_t i = 0; i < propertyCount; ++i)
+			{
+				dwriteFontProperties.push_back(ToDWriteFontProperty(propertyElements[i]));
+			}
 
-            auto canvasFontSet = Make<CanvasFontSet>(dwriteFontSet.Get());
+			ComPtr<IDWriteFontSet> dwriteFontSet;
+			ThrowIfFailed(resource->GetMatchingFonts(dwriteFontProperties.data(), propertyCount, &dwriteFontSet));
 
-            ThrowIfFailed(canvasFontSet.CopyTo(matchingFonts));
-        });
+			auto canvasFontSet = Make<CanvasFontSet>(dwriteFontSet.Get());
+
+			ThrowIfFailed(canvasFontSet.CopyTo(matchingFonts));
+		});
 }
 
 
 IFACEMETHODIMP CanvasFontSet::GetMatchingFontsFromWwsFamily(
-    HSTRING familyName,
-    FontWeight weight,
-    FontStretch stretch,
-    FontStyle style,
-    ICanvasFontSet** matchingFonts)
+	HSTRING familyName,
+	FontWeight weight,
+	FontStretch stretch,
+	FontStyle style,
+	ICanvasFontSet** matchingFonts)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckAndClearOutPointer(matchingFonts);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckAndClearOutPointer(matchingFonts);
 
-            auto& resource = GetResource();
+			auto& resource = GetResource();
 
-            ComPtr<IDWriteFontSet> dwriteFontSet;
-            ThrowIfFailed(resource->GetMatchingFonts(
-                WindowsGetStringRawBuffer(familyName, nullptr), 
-                ToFontWeight(weight), 
-                ToFontStretch(stretch), 
-                ToFontStyle(style), 
-                &dwriteFontSet));
+			ComPtr<IDWriteFontSet> dwriteFontSet;
+			ThrowIfFailed(resource->GetMatchingFonts(
+				WindowsGetStringRawBuffer(familyName, nullptr),
+				ToFontWeight(weight),
+				ToFontStretch(stretch),
+				ToFontStyle(style),
+				&dwriteFontSet));
 
-            auto canvasFontSet = Make<CanvasFontSet>(dwriteFontSet.Get());
-            CheckMakeResult(canvasFontSet);
+			auto canvasFontSet = Make<CanvasFontSet>(dwriteFontSet.Get());
+			CheckMakeResult(canvasFontSet);
 
-            ThrowIfFailed(canvasFontSet.CopyTo(matchingFonts));
-        });
+			ThrowIfFailed(canvasFontSet.CopyTo(matchingFonts));
+		});
 }
 
 
 IFACEMETHODIMP CanvasFontSet::CountFontsMatchingProperty(
-    CanvasFontProperty property,
-    UINT32* count)
+	CanvasFontProperty property,
+	UINT32* count)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckInPointer(count);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckInPointer(count);
 
-            auto& resource = GetResource();
+			auto& resource = GetResource();
 
-            auto dwriteProperty = ToDWriteFontProperty(property);
-            ThrowIfFailed(resource->GetPropertyOccurrenceCount(&dwriteProperty, count));
-        });
+			auto dwriteProperty = ToDWriteFontProperty(property);
+			ThrowIfFailed(resource->GetPropertyOccurrenceCount(&dwriteProperty, count));
+		});
 }
 
 
 IFACEMETHODIMP CanvasFontSet::GetPropertyValuesFromIndex(
-    UINT32 fontIndex,
-    CanvasFontPropertyIdentifier propertyIdentifier,
-    IMapView<HSTRING, HSTRING>** values)
+	UINT32 fontIndex,
+	CanvasFontPropertyIdentifier propertyIdentifier,
+	IMapView<HSTRING, HSTRING>** values)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckAndClearOutPointer(values);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckAndClearOutPointer(values);
 
-            auto& resource = GetResource();
+			auto& resource = GetResource();
 
-            BOOL unused;
-            ComPtr<IDWriteLocalizedStrings> dwriteLocalizedStrings;
-            ThrowIfFailed(resource->GetPropertyValues(fontIndex, ToDWriteFontPropertyId(propertyIdentifier), &unused, &dwriteLocalizedStrings));
+			BOOL unused;
+			ComPtr<IDWriteLocalizedStrings> dwriteLocalizedStrings;
+			ThrowIfFailed(resource->GetPropertyValues(fontIndex, ToDWriteFontPropertyId(propertyIdentifier), &unused,
+			                                          &dwriteLocalizedStrings));
 
-            CopyLocalizedStringsToMapView(dwriteLocalizedStrings, values);
-        });
+			CopyLocalizedStringsToMapView(dwriteLocalizedStrings, values);
+		});
 }
 
-void CopyStringListToArray(ComPtr<IDWriteStringList> const& stringList, CanvasFontPropertyIdentifier propertyIdentifier, UINT32* valueCount, CanvasFontProperty** valueElements)
+void CopyStringListToArray(ComPtr<IDWriteStringList> const& stringList, CanvasFontPropertyIdentifier propertyIdentifier,
+                           UINT32* valueCount, CanvasFontProperty** valueElements)
 {
-    const uint32_t elementCount = stringList->GetCount();
+	const uint32_t elementCount = stringList->GetCount();
 
-    ComArray<CanvasFontProperty> output(elementCount);
+	ComArray<CanvasFontProperty> output(elementCount);
 
-    for (uint32_t i = 0; i < elementCount; ++i)
-    {
-        auto name = GetTextFromLocalizedStrings(i, stringList);
-        name.CopyTo(&output[i].Value);
+	for (uint32_t i = 0; i < elementCount; ++i)
+	{
+		auto name = GetTextFromLocalizedStrings(i, stringList);
+		name.CopyTo(&output[i].Value);
 
-        auto locale = GetLocaleFromLocalizedStrings(i, stringList);
-        locale.CopyTo(&output[i].Locale);
+		auto locale = GetLocaleFromLocalizedStrings(i, stringList);
+		locale.CopyTo(&output[i].Locale);
 
-        output[i].Identifier = propertyIdentifier;
-    }
+		output[i].Identifier = propertyIdentifier;
+	}
 
-    output.Detach(valueCount, valueElements);
+	output.Detach(valueCount, valueElements);
 }
 
 IFACEMETHODIMP CanvasFontSet::GetPropertyValuesFromIdentifier(
-    CanvasFontPropertyIdentifier propertyIdentifier,
-    HSTRING preferredLocaleNames,
-    UINT32* valueCount,
-    CanvasFontProperty** valueElements)
+	CanvasFontPropertyIdentifier propertyIdentifier,
+	HSTRING preferredLocaleNames,
+	UINT32* valueCount,
+	CanvasFontProperty** valueElements)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckInPointer(valueCount);
-            CheckAndClearOutPointer(valueElements);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckInPointer(valueCount);
+			CheckAndClearOutPointer(valueElements);
 
-            auto& resource = GetResource();
+			auto& resource = GetResource();
 
-            ComPtr<IDWriteStringList> dwriteStringList;
-            ThrowIfFailed(resource->GetPropertyValues(ToDWriteFontPropertyId(propertyIdentifier), WindowsGetStringRawBuffer(preferredLocaleNames, nullptr), &dwriteStringList));
+			ComPtr<IDWriteStringList> dwriteStringList;
+			ThrowIfFailed(resource->GetPropertyValues(ToDWriteFontPropertyId(propertyIdentifier),
+			                                          WindowsGetStringRawBuffer(preferredLocaleNames, nullptr),
+			                                          &dwriteStringList));
 
-            CopyStringListToArray(dwriteStringList, propertyIdentifier, valueCount, valueElements);
-        });
+			CopyStringListToArray(dwriteStringList, propertyIdentifier, valueCount, valueElements);
+		});
 }
 
 
 IFACEMETHODIMP CanvasFontSet::GetPropertyValues(
-    CanvasFontPropertyIdentifier propertyIdentifier,
-    UINT32* valueCount,
-    CanvasFontProperty** valueElements)
+	CanvasFontPropertyIdentifier propertyIdentifier,
+	UINT32* valueCount,
+	CanvasFontProperty** valueElements)
 {
-    return ExceptionBoundary(
-        [&]
-        {
-            CheckInPointer(valueCount);
-            CheckAndClearOutPointer(valueElements);
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckInPointer(valueCount);
+			CheckAndClearOutPointer(valueElements);
 
-            auto& resource = GetResource();
+			auto& resource = GetResource();
 
-            ComPtr<IDWriteStringList> dwriteStringList;
-            ThrowIfFailed(resource->GetPropertyValues(ToDWriteFontPropertyId(propertyIdentifier), &dwriteStringList));
+			ComPtr<IDWriteStringList> dwriteStringList;
+			ThrowIfFailed(resource->GetPropertyValues(ToDWriteFontPropertyId(propertyIdentifier), &dwriteStringList));
 
-            CopyStringListToArray(dwriteStringList, propertyIdentifier, valueCount, valueElements);
-        });
+			CopyStringListToArray(dwriteStringList, propertyIdentifier, valueCount, valueElements);
+		});
 }
 
 #endif

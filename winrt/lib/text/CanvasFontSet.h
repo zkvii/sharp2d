@@ -105,9 +105,19 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { na
 		/*
 		 * ICanvasFontSetStatics
 		 */
-        IFACEMETHOD(AddFontFileToSet)(
+        IFACEMETHOD(AddFontFileToNewSet)(
             HSTRING fontFilePath,
             ICanvasFontSet** fontSet
 			);
+        IFACEMETHOD(AddFontFileToSet)(
+            HSTRING fontFilePath,
+            ICanvasFontSet* oldfontSet,
+            ICanvasFontSet** newfontSet
+            );
+        IFACEMETHOD(AddFontStreamToSet)(
+            IStream* fontStream,
+            ICanvasFontSet* oldfontSet,
+            ICanvasFontSet** newfontSet
+            );
     };
 }}}}}
