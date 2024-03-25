@@ -17,7 +17,7 @@ public class CanvasTextFormatTests
         textFormat.FontSize = 44;
 
         CanvasDevice device = CanvasDevice.GetSharedDevice();
-        CanvasRenderTarget offscreen = new CanvasRenderTarget(device, 300, 300, 96);
+        CanvasRenderTarget offscreen = new CanvasRenderTarget(device, 3000, 3000, 96);
 
         using (CanvasDrawingSession ds = offscreen.CreateDrawingSession())
         {
