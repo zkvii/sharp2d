@@ -115,7 +115,8 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas { na
             ICanvasFontSet** newfontSet
             );
         IFACEMETHOD(AddFontStreamToSet)(
-            IStream* fontStream,
+            uint32_t fontStreamBytesCount,
+            uint8_t* fontStreamBytes,
             ICanvasFontSet* oldfontSet,
             ICanvasFontSet** newfontSet
             );

@@ -9,7 +9,9 @@
 
 namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas
 {
-    using namespace WinRTDirectX;
+	class CanvasBitmap;
+	struct ICanvasBitmap;
+	using namespace WinRTDirectX;
 
     using namespace ::Microsoft::WRL;
     using namespace ABI::Microsoft::Graphics::Canvas::Effects;

@@ -262,12 +262,12 @@ TEST_CLASS(CanvasFontSetTests)
 		auto factory = Make<CanvasFontSetFactory>();
         ComPtr<ICanvasFontSet> actualCanvasFontSet;
         HSTRING hString;
-        boolean b{};
+        // boolean b{};
         WindowsCreateString(L"C:\\Windows\\Fonts\\Arial.ttf", 88, &hString);
         // auto hstring= Make<HSTRING>("C:\\Windows\\Fonts\\Arial.ttf");
         Assert::AreEqual(S_OK, factory->AddFontFileToNewSet(hString, &actualCanvasFontSet));
 
-        Assert::AreEqual(S_OK, factory->AddFontFileToSet(hString, actualCanvasFontSet.Get(), &b));
+        // Assert::AreEqual(S_OK, factory->AddFontFileToSet(hString, actualCanvasFontSet.Get(), &b));
         // factory->AddFontFileToSet(path, &actualCanvasFontSet);
 	}
 

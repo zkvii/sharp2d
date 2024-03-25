@@ -120,9 +120,13 @@ namespace Microsoft.Graphics.Canvas.Text
         HRESULT GetSystemFontSet([out, retval] CanvasFontSet** fontSet);
         HRESULT AddFontFileToNewSet([in] HSTRING fontFilePath, [out, retval] CanvasFontSet** fontSet);
         HRESULT AddFontFileToSet([in] HSTRING fontFilePath, [in]  CanvasFontSet* oldfontSet,[out,retval] CanvasFontSet** newfontSet);
-        HRESULT AddFontStreamToSet([in]IStream* fontStream, [in]  CanvasFontSet* oldfontSet, [out, retval] CanvasFontSet** newfontSet);
+     //   HRESULT AddFontStreamToSet([in]IRandomAccessStream* fontStream, [in]  CanvasFontSet* oldfontSet, [out, retval] CanvasFontSet** newfontSet);
+        HRESULT AddFontStreamToSet([in] UINT32 fontStreamSize,
+            [in, size_is(fontStreamSize)] BYTE* fontStreamBytes,
+            [in] CanvasFontSet* oldfontSet, 
+            [out, retval] CanvasFontSet** newfontSet);
 
-
+     //   HRESULT CreateCanvasFontSetFromCollection([in] IDWriteFontCollection* fontCollection, [out, retval] CanvasFontSet** fontSet);
     }
 
     [STANDARD_ATTRIBUTES, activatable(ICanvasFontSetFactory, VERSION), static(ICanvasFontSetStatics, VERSION)]

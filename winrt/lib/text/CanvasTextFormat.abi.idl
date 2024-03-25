@@ -10,6 +10,8 @@ namespace Microsoft.Graphics.Canvas.Text
 {
     runtimeclass CanvasTextFormat;
 
+    runtimeclass CanvasTextFormatFactory;
+
     //
     // CanvasTextFormat is used to describe the text format when drawing text.
     //
@@ -136,6 +138,9 @@ namespace Microsoft.Graphics.Canvas.Text
         Ellipsis
     } CanvasTrimmingSign;
 
+   
+
+
 #define PROPERTY(NAME, TYPE)                            \
     [propget] HRESULT NAME([out, retval] TYPE* value);  \
     [propput] HRESULT NAME([in] TYPE value)
@@ -164,6 +169,7 @@ namespace Microsoft.Graphics.Canvas.Text
         PROPERTY(VerticalGlyphOrientation, CanvasVerticalGlyphOrientation);
         PROPERTY(OpticalAlignment,         CanvasOpticalAlignment); 
         PROPERTY(LastLineWrapping,         boolean);
+   
 
 #if WINVER > _WIN32_WINNT_WINBLUE
         PROPERTY(LineSpacingMode,          CanvasLineSpacingMode); // [6]
@@ -231,10 +237,15 @@ namespace Microsoft.Graphics.Canvas.Text
         // Custom trimming signs don't interact with the TrimmingSign property,
         // except that a custom trimming sign (being non-null) always takes precedence.
         //
+             // custom properties
+      //  PROPERTY(CustomFontSet,     ICanvasFontSet*);
+  
+     
+      
     }
 
 #undef PROPERTY
-        
+        //exclusiveto(CanvasTextFormat, CanvasTextFormatFactory)
     [version(VERSION), uuid(8A927515-33FC-4C92-A6AA-94A8F29C140B), exclusiveto(CanvasTextFormat)]
     interface ICanvasTextFormatStatics : IInspectable
     {
@@ -262,11 +273,34 @@ namespace Microsoft.Graphics.Canvas.Text
             [in] Windows.Foundation.Collections.IVectorView<HSTRING>* localeList,
             [out] UINT32* valueCount,
             [out, size_is(, *valueCount), retval] HSTRING** valueElements);
+
+ 
+    
     }
+
 
     [STANDARD_ATTRIBUTES, activatable(VERSION), static(ICanvasTextFormatStatics, VERSION)]
     runtimeclass CanvasTextFormat
     {
         [default] interface ICanvasTextFormat;
+   
     }    
+
+
+
+     [version(VERSION),uuid(aa2f765e-f6de-4e70-b983-a4c06c842247), exclusiveto(CanvasTextFormatInterop)]
+        interface ICanvasTextFormatInteropStatics : IInspectable {
+
+       HRESULT CreateTextFormatWithCustomFontSet(
+         [in]   CanvasFontSet* fontSet,
+         [out,retval] CanvasTextFormat** textFormat
+        );
+      
+    };
+    [STANDARD_ATTRIBUTES,static(ICanvasTextFormatInteropStatics, VERSION)]
+    runtimeclass CanvasTextFormatInterop
+	{
+
+	}
+
 }

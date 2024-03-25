@@ -126,18 +126,7 @@ IFACEMETHODIMP CanvasFontSetFactory::AddFontFileToNewSet(HSTRING fontFilePath, I
 
 
 			canvasFontSet.CopyTo(fontSet);
-			//
-			// uint32_t fontCount = newFontSet->GetFontCount();
-			// ThrowIfFailed(fontCount==1);
-			//
-			// ComPtr<IDWriteFontCollection1> fontCollection;
-			//
-			// ThrowIfFailed(
-			// 	As<IDWriteFactory5>(factory)->CreateFontCollectionFromFontSet(newFontSet.Get(), &fontCollection));
-
-			/*
-			 * count fonts in the collection
-			 */
+	
 		});
 }
 
@@ -180,16 +169,23 @@ IFACEMETHODIMP CanvasFontSetFactory::AddFontFileToSet(HSTRING fontFilePath, ICan
 			ThrowIfFailed(fontSetBuilder->CreateFontSet(&newFontSet));
 
 
-			auto count = newFontSet->GetFontCount();
-			std::cout << "count: " << count << std::endl;
+			// auto count = newFontSet->GetFontCount();
+			// std::cout << "count: " << count << std::endl;
 			auto canvasFontSet = ResourceManager::GetOrCreate<ICanvasFontSet>(newFontSet.Get());
 			canvasFontSet.CopyTo(newfontSet);
 		});
 }
+/*
+ * mainly borrowing code from
+ *https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/DirectWriteCustomFontSets/cpp/CustomFontSetManager.cpp
+ *
+ */
 
-
-IFACEMETHODIMP CanvasFontSetFactory::AddFontStreamToSet(IStream* fontStream, ICanvasFontSet* oldfontSet,
-                                                        ICanvasFontSet** newfontSet)
+IFACEMETHODIMP CanvasFontSetFactory::AddFontStreamToSet(
+	uint32_t fontStreamBytesCount,
+	uint8_t* fontStreamBytes,
+	ICanvasFontSet* oldfontSet,
+	ICanvasFontSet** newfontSet)
 {
 	return ExceptionBoundary(
 		[&]
@@ -202,7 +198,8 @@ IFACEMETHODIMP CanvasFontSetFactory::AddFontStreamToSet(IStream* fontStream, ICa
 			ThrowIfFailed(As<IDWriteFactory5>(factory)->RegisterFontFileLoader(fontFileStream.Get()));
 
 
-			fontFileStream->CreateInMemoryFontFileReference();
+			fontFileStream->CreateInMemoryFontFileReference(factory.Get(), fontStreamBytes, fontStreamBytesCount,
+			                                                nullptr, &fontFile);
 
 
 			ComPtr<IDWriteFontSetBuilder1> fontSetBuilder;
@@ -210,15 +207,15 @@ IFACEMETHODIMP CanvasFontSetFactory::AddFontStreamToSet(IStream* fontStream, ICa
 			ThrowIfFailed(As<IDWriteFactory5>(factory)->CreateFontSetBuilder(&fontSetBuilder));
 
 			ThrowIfFailed(fontSetBuilder->AddFontFile(fontFile.Get()));
-			auto pfontSet = GetWrappedResource<IDWriteFontSet>(oldfontSet);
-			pfontSet->GetFontCount();
+			const auto pfont_set = GetWrappedResource<IDWriteFontSet>(oldfontSet);
+			pfont_set->GetFontCount();
 
-			UINT32 fontCount = pfontSet->GetFontCount();
+			UINT32 fontCount = pfont_set->GetFontCount();
 
 			for (UINT32 i = 0; i < fontCount; ++i)
 			{
 				ComPtr<IDWriteFontFaceReference> fontFaceReference;
-				auto hr = pfontSet->GetFontFaceReference(i, &fontFaceReference);
+				auto hr = pfont_set->GetFontFaceReference(i, &fontFaceReference);
 
 				hr = fontSetBuilder->AddFontFaceReference(fontFaceReference.Get());
 				if (hr != S_OK)
