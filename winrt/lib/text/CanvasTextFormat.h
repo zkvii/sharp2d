@@ -32,14 +32,19 @@ namespace ABI
 					class CanvasTextFormat;
 					using namespace ::Microsoft::WRL;
 
-
-					class CanvasTextFormatInterop
-					{
-					public:
-						IFACEMETHOD(CreateTextFormatWithCustomFontSet)(
-								ICanvasFontSet* fontSet,
-								ICanvasTextFormat** textFormat);
-					};
+					// struct ICanvasTextFormatInteropStatics;
+					//
+					// class CanvasTextFormatInteropFactory: public AgileActivationFactory<ICanvasTextFormatInteropStatics>
+					// 	, private LifespanTracker<CanvasTextFormatInteropFactory>
+					// {
+					// 	InspectableClassStatic(RuntimeClass_Microsoft_Graphics_Canvas_Text_CanvasTextFormat, BaseTrust);
+					// public:
+					// 	IFACEMETHOD(ActivateInstance)(IInspectable** obj) override;
+					//
+					// 	IFACEMETHOD(CreateTextFormatWithCustomFontSet)(
+					// 			ICanvasFontSet* fontSet,
+					// 			ICanvasTextFormat** textFormat) override ;
+					// };
 
 
 					//
@@ -62,6 +67,10 @@ namespace ABI
 							IVectorView<HSTRING>* localeList,
 							uint32_t* valueCount,
 							HSTRING** valueElements) override;
+
+							IFACEMETHOD(CreateTextFormatWithCustomFontSet)(
+							ICanvasFontSet* fontSet,
+							ICanvasTextFormat** textFormat) override ;
 					};
 
 
@@ -93,7 +102,7 @@ namespace ABI
 							CloakedIid<ICanvasTextFormatInternal>)
 					{
 						InspectableClass(RuntimeClass_Microsoft_Graphics_Canvas_Text_CanvasTextFormat, BaseTrust);
-
+					public:
 						std::shared_ptr<CustomFontManager> m_customFontManager;
 
 						//
@@ -195,6 +204,7 @@ namespace ABI
 						//
 						// IClosable
 						//
+						IFACEMETHOD(get_CustomFontSet)(ICanvasFontSet** value) override;
 
 						IFACEMETHOD(Close)() override;
 

@@ -92,7 +92,35 @@ IFACEMETHODIMP CanvasTextFormatFactory::ActivateInstance(IInspectable** object)
 		});
 }
 
-IFACEMETHODIMP CanvasTextFormatInterop::CreateTextFormatWithCustomFontSet(
+// IFACEMETHODIMP CanvasTextFormatInteropFactory::ActivateInstance(IInspectable** object)
+// {
+// 	return ExceptionBoundary(
+// 		[&]
+// 		{
+// 			auto format = Make<CanvasTextFormat>();
+// 			CheckMakeResult(format);
+// 			ThrowIfFailed(format.CopyTo(object));
+// 		});
+// }
+/*
+ * exposure canvasfontset
+ */
+IFACEMETHODIMP CanvasTextFormat::get_CustomFontSet(ICanvasFontSet** value)
+{
+	return ExceptionBoundary(
+		[&]
+		{
+			CheckAndClearOutPointer(value);
+			ComPtr<IDWriteFontSet> fontSet;
+			ThrowIfFailed(As<IDWriteFontCollection1>(m_fontCollection)->GetFontSet(&fontSet));
+			auto lfontSet = ResourceManager::GetOrCreate<ICanvasFontSet>(fontSet.Get());
+			lfontSet.CopyTo(value);
+
+		});
+
+}
+
+IFACEMETHODIMP CanvasTextFormatFactory::CreateTextFormatWithCustomFontSet(
 	ICanvasFontSet* fontSet,
 	ICanvasTextFormat** newTextFormat
 )
@@ -122,11 +150,14 @@ IFACEMETHODIMP CanvasTextFormatInterop::CreateTextFormatWithCustomFontSet(
 				20.0f,
 				L"en-us",
 				&textFormat);
-				auto ltextFormat	= ResourceManager::GetOrCreate<ICanvasTextFormat>(textFormat.Get());
+				
+				auto ltextFormat	= ResourceManager::GetOrCreate<ICanvasTextFormat>(As<IDWriteTextFormat1>(textFormat).Get());
 				ltextFormat.CopyTo(newTextFormat);
+
 
 			// format.CopyTo(newTextFormat);
 			// format->SetCustomFontSet(fontSet);
+
 
 		});
 }
@@ -626,6 +657,8 @@ void CanvasTextFormat::RealizeDirection(IDWriteTextFormat1* textFormat)
 	ThrowIfFailed(textFormat->SetReadingDirection(entry->ReadingDirection));
 	ThrowIfFailed(textFormat->SetFlowDirection(entry->FlowDirection));
 }
+
+
 
 
 IFACEMETHODIMP CanvasTextFormat::get_Direction(CanvasTextDirection* value)

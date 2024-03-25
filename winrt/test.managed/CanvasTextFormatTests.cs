@@ -14,10 +14,9 @@ public class CanvasTextFormatTests
     [TestMethod]
     public void LoadCanvasTextFormatTests()
     {
-        var textFormat = new CanvasTextFormat()
-        {
-            FontFamily = "Arial",
-        };
-        Assert.AreEqual("Arial", textFormat.FontFamily);
+        var ret = CanvasFontSet.AddFontFileToNewSet("C:\\\\Users\\\\gjt\\\\Downloads\\\\adine-kirnberg\\\\sample.ttf");
+        var textFormat = CanvasTextFormat.CreateTextFormatWithCustomFontSet(ret);
+        var set=textFormat.get_CustomFontSet();
+        Assert.IsNotNull(textFormat);
     }
 }

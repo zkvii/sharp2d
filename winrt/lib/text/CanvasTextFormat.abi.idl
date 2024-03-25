@@ -12,6 +12,8 @@ namespace Microsoft.Graphics.Canvas.Text
 
     runtimeclass CanvasTextFormatFactory;
 
+   // runtimeclass CanvasTextFormatInteropFactory;
+
     //
     // CanvasTextFormat is used to describe the text format when drawing text.
     //
@@ -239,8 +241,8 @@ namespace Microsoft.Graphics.Canvas.Text
         //
              // custom properties
       //  PROPERTY(CustomFontSet,     ICanvasFontSet*);
-  
-     
+    
+        HRESULT get_CustomFontSet([out, retval] CanvasFontSet** value);
       
     }
 
@@ -273,22 +275,18 @@ namespace Microsoft.Graphics.Canvas.Text
             [in] Windows.Foundation.Collections.IVectorView<HSTRING>* localeList,
             [out] UINT32* valueCount,
             [out, size_is(, *valueCount), retval] HSTRING** valueElements);
-
- 
+        
+        HRESULT CreateTextFormatWithCustomFontSet(
+            [in]   CanvasFontSet* fontSet,
+            [out, retval] CanvasTextFormat** textFormat
+        );
+        
     
     }
 
 
-    [STANDARD_ATTRIBUTES, activatable(VERSION), static(ICanvasTextFormatStatics, VERSION)]
-    runtimeclass CanvasTextFormat
-    {
-        [default] interface ICanvasTextFormat;
-   
-    }    
-
-
-
-     [version(VERSION),uuid(aa2f765e-f6de-4e70-b983-a4c06c842247), exclusiveto(CanvasTextFormatInterop)]
+    /*
+     [version(VERSION),uuid(aa2f765e-f6de-4e70-b983-a4c06c842247), exclusiveto(CanvasTextFormat)]
         interface ICanvasTextFormatInteropStatics : IInspectable {
 
        HRESULT CreateTextFormatWithCustomFontSet(
@@ -297,10 +295,19 @@ namespace Microsoft.Graphics.Canvas.Text
         );
       
     };
-    [STANDARD_ATTRIBUTES,static(ICanvasTextFormatInteropStatics, VERSION)]
-    runtimeclass CanvasTextFormatInterop
+    */
+       
+    /**
+    
+    [STANDARD_ATTRIBUTES,  static(ICanvasTextFormatInteropStatics, VERSION)]
+        runtimeclass CanvasTextFormatInterop
 	{
-
 	}
+    */
+     [STANDARD_ATTRIBUTES, activatable(VERSION), static(ICanvasTextFormatStatics, VERSION)]
+         runtimeclass CanvasTextFormat
+     {
+         [default] interface ICanvasTextFormat;
 
+     }
 }
