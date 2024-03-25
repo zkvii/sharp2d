@@ -70,6 +70,7 @@ namespace ABI
 
 							IFACEMETHOD(CreateTextFormatWithCustomFontSet)(
 							ICanvasFontSet* fontSet,
+							HSTRING fontFamily,
 							ICanvasTextFormat** textFormat) override ;
 					};
 
@@ -192,7 +193,7 @@ namespace ABI
 						PROPERTY(LastLineWrapping, boolean);
 						PROPERTY(TrimmingSign, CanvasTrimmingSign);
 						PROPERTY(CustomTrimmingSign, ICanvasTextInlineObject*);
-						// PROPERTY(CustomFontSet,            ICanvasFontSet*);
+						PROPERTY(CustomFontSet,           ICanvasFontSet*);
 
 
 #if WINVER > _WIN32_WINNT_WINBLUE
@@ -204,7 +205,7 @@ namespace ABI
 						//
 						// IClosable
 						//
-						IFACEMETHOD(get_CustomFontSet)(ICanvasFontSet** value) override;
+						// IFACEMETHOD(get_CustomFontSet)(ICanvasFontSet** value) override;
 
 						IFACEMETHOD(Close)() override;
 

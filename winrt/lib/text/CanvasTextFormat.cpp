@@ -120,8 +120,27 @@ IFACEMETHODIMP CanvasTextFormat::get_CustomFontSet(ICanvasFontSet** value)
 
 }
 
+IFACEMETHODIMP CanvasTextFormat::put_CustomFontSet(ICanvasFontSet* value)
+{
+	return ExceptionBoundary(
+		[&]
+		{
+			m_fontCollection.Reset();
+			ComPtr<IDWriteFontSet> fontSet = GetWrappedResource<IDWriteFontSet>(value);
+			ComPtr<IDWriteFontCollection1> fontCollection;
+			auto factory = CustomFontManager::GetInstance()->GetSharedFactory();
+
+			ThrowIfFailed(
+				As<IDWriteFactory5>(factory)->CreateFontCollectionFromFontSet(fontSet.Get(), &fontCollection));
+			As<IDWriteFontCollection>(fontCollection).CopyTo(&m_fontCollection);
+
+		});
+
+}
+
 IFACEMETHODIMP CanvasTextFormatFactory::CreateTextFormatWithCustomFontSet(
 	ICanvasFontSet* fontSet,
+	HSTRING fontFamily,
 	ICanvasTextFormat** newTextFormat
 )
 {
@@ -141,8 +160,10 @@ IFACEMETHODIMP CanvasTextFormatFactory::CreateTextFormatWithCustomFontSet(
 				As<IDWriteFactory5>(factory)->CreateFontCollectionFromFontSet(dfontset.Get(), &fontCollection));
 
 			ComPtr<IDWriteTextFormat> textFormat;
+
+			auto fontName = WindowsGetStringRawBuffer(fontFamily, nullptr);
 			factory->CreateTextFormat(
-				L"Segoe UI",
+				fontName,
 				fontCollection.Get(),
 				DWRITE_FONT_WEIGHT_NORMAL,
 				DWRITE_FONT_STYLE_NORMAL,

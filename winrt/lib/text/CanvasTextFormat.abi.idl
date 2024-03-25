@@ -241,8 +241,8 @@ namespace Microsoft.Graphics.Canvas.Text
         //
              // custom properties
       //  PROPERTY(CustomFontSet,     ICanvasFontSet*);
-    
-        HRESULT get_CustomFontSet([out, retval] CanvasFontSet** value);
+    	PROPERTY(CustomFontSet,     CanvasFontSet*);
+        //HRESULT get_CustomFontSet([out, retval] CanvasFontSet** value);
       
     }
 
@@ -278,6 +278,7 @@ namespace Microsoft.Graphics.Canvas.Text
         
         HRESULT CreateTextFormatWithCustomFontSet(
             [in]   CanvasFontSet* fontSet,
+            [in]  HSTRING fontFamily,
             [out, retval] CanvasTextFormat** textFormat
         );
         

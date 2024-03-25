@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+
 <!--
 Copyright (c) Microsoft Corporation. All rights reserved.
 
@@ -12,7 +13,11 @@ Licensed under the MIT License. See LICENSE.txt in the project root for license 
     xmlns:local="using:test.managed"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:xaml="using:Microsoft.Graphics.Canvas.UI.Xaml"
     mc:Ignorable="d">
-    
-    <Frame />
+    <Grid>
+        <!-- <TextBlock Text="window"></TextBlock> -->
+        <!-- <xaml:CanvasVirtualControl x:Name="PdfCanvas" ClearColor="White" /> -->
+        <Frame />
+    </Grid>
 </Window>
