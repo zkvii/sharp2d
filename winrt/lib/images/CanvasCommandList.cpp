@@ -124,10 +124,10 @@ namespace ABI
 								CreateDeviceContextForDrawingSessionWithMultiThread();
 							deviceContext->SetTarget(d2dCommandList.Get());
 
-							 auto ds=ResourceManager::GetOrCreate<CanvasDrawingSession>(deviceContext.Get());
-							// const auto adapter = std::make_shared<SimpleCanvasDrawingSessionAdapter>(deviceContext.Get());
+							 // auto ds=ResourceManager::GetOrCreate<CanvasDrawingSession>(deviceContext.Get());
+							const auto adapter = std::make_shared<SimpleCanvasDrawingSessionAdapter>(deviceContext.Get());
 
-							// const auto ds = CanvasDrawingSession::CreateNew(deviceContext.Get(), adapter, device.Get());
+							const auto ds = CanvasDrawingSession::CreateNew(deviceContext.Get(), adapter, device.Get());
 
 							ThrowIfFailed(ds.CopyTo(drawingSession));
 						});
