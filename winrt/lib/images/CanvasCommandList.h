@@ -38,6 +38,9 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas
 
         IFACEMETHOD(get_Device)(ICanvasDevice** value) override;
 
+        // MultiThreaded
+        IFACEMETHOD(CreateDrawingSessionMultiThread)(boolean isMultiThreaded, ICanvasDrawingSession** drawingSession) override;
+
         // IClosable
 
         IFACEMETHOD(Close)() override;

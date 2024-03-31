@@ -24,6 +24,8 @@ namespace Microsoft.Graphics.Canvas
         //
         HRESULT CreateDrawingSession([out, retval] CanvasDrawingSession** drawingSession);
 
+        HRESULT CreateDrawingSessionMultiThread([in] boolean isMultiThreaded,[out, retval] CanvasDrawingSession** drawingSession);
+
         [propget]
         HRESULT Device([out, retval] CanvasDevice** value);
     }

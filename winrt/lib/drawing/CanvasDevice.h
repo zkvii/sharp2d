@@ -78,6 +78,9 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas
 
         virtual ComPtr<ID2D1DeviceContext1> CreateDeviceContextForDrawingSession() = 0;
 
+        //multiThread interface
+        virtual ComPtr<ID2D1DeviceContext1> CreateDeviceContextForDrawingSessionWithMultiThread() = 0;
+
         virtual ComPtr<ID2D1SolidColorBrush> CreateSolidColorBrush(D2D1_COLOR_F const& color) = 0;
 
         virtual ComPtr<ID2D1Bitmap1> CreateBitmapFromWicResource(
@@ -284,6 +287,9 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas
         virtual ComPtr<ID2D1Device1> GetD2DDevice() override;
 
         virtual ComPtr<ID2D1DeviceContext1> CreateDeviceContextForDrawingSession() override;
+
+        //multiThread interface
+        virtual ComPtr<ID2D1DeviceContext1> CreateDeviceContextForDrawingSessionWithMultiThread() override;
 
         virtual ComPtr<ID2D1SolidColorBrush> CreateSolidColorBrush(D2D1_COLOR_F const& color) override;
 

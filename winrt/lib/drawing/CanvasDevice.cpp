@@ -908,6 +908,15 @@ namespace ABI { namespace Microsoft { namespace Graphics { namespace Canvas
         return dc;
     }
 
+    ComPtr<ID2D1DeviceContext1> CanvasDevice::CreateDeviceContextForDrawingSessionWithMultiThread()
+	{
+
+		ComPtr<ID2D1DeviceContext1> dc;
+		ThrowIfFailed(GetResource()->CreateDeviceContext(D2D1_DEVICE_CONTEXT_OPTIONS_ENABLE_MULTITHREADED_OPTIMIZATIONS, &dc));
+		return dc;
+	}
+
+
     ComPtr<ID2D1SolidColorBrush> CanvasDevice::CreateSolidColorBrush(D2D1_COLOR_F const& color)
     {
         auto deviceContext = GetResourceCreationDeviceContext();
